@@ -35,7 +35,7 @@ public class AiSummaryService : IAiSummaryService
                 return "Not found tasks to summarize";
             }
 
-            return await GeneratingOpenAISummaryAsync(tasksList);
+            return await GenerateGitHubModelsSummaryAsync(tasksList);
 
         }
         catch (Exception ex)
@@ -69,33 +69,25 @@ public class AiSummaryService : IAiSummaryService
         return summary;
     }
 
-    private async Task<string> GeneratingOpenAISummaryAsync(List<TaskDto> tasks)
+    private async Task<string> GenerateGitHubModelsSummaryAsync(List<TaskDto> tasks)
     {
-        var tasksText = string.Join("\n", tasks.Select(t => $"- {t.Title}: {t.Description} "));
-        
-        // Try GitHub Models first, then OpenAI as fallback
         var githubKey = _configuration["GitHubModelsKey"];
-        var openApiKey = _configuration["ChatGPTKey"];
         
-        if (!string.IsNullOrEmpty(githubKey))
+        if (string.IsNullOrEmpty(githubKey))
         {
-            _logger.LogInformation("Using GitHub Models for AI summary");
-            return await CallAiApiAsync(tasks, githubKey, "https://models.inference.ai.azure.com/chat/completions", "gpt-4o-mini");
-        }
-        else if (!string.IsNullOrEmpty(openApiKey))
-        {
-            _logger.LogInformation("Using OpenAI for AI summary");
-            return await CallAiApiAsync(tasks, openApiKey, "https://api.openai.com/v1/chat/completions", "gpt-3.5-turbo");
-        }
-        else
-        {
-            _logger.LogWarning("No AI API keys found in configuration. Using local fallback.");
+            _logger.LogWarning("GitHub Models API key not found in configuration. Using local fallback.");
             return GenerateLocalSummary(tasks);
         }
+
+        _logger.LogInformation("Using GitHub Models for AI summary");
+        return await CallGitHubModelsApiAsync(tasks, githubKey);
     }
 
-    private async Task<string> CallAiApiAsync(List<TaskDto> tasks, string apiKey, string endpoint, string model)
+    private async Task<string> CallGitHubModelsApiAsync(List<TaskDto> tasks, string apiKey)
     {
+        const string endpoint = "https://models.inference.ai.azure.com/chat/completions";
+        const string model = "gpt-4o-mini";
+        
         var tasksText = string.Join("\n", tasks.Select(t => $"- {t.Title}: {t.Description} "));
 
         var prompt = $"Summarize the following tasks in a concise and organized manner:\n\n{tasksText}\n\nProvide a summary in English highlighting the main topics and activities.";
@@ -116,7 +108,7 @@ public class AiSummaryService : IAiSummaryService
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
 
         var jsonContent = JsonSerializer.Serialize(requestBody);
-        _logger.LogInformation("Sending request to {Endpoint} with model {Model}", endpoint, model);
+        _logger.LogInformation("Sending request to GitHub Models with model {Model}", model);
         
         var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
 
@@ -129,15 +121,15 @@ public class AiSummaryService : IAiSummaryService
             // Check for specific error types
             if (errorResponse.Contains("insufficient_quota"))
             {
-                _logger.LogWarning("AI API quota exceeded. Using local fallback summary.");
+                _logger.LogWarning("GitHub Models quota exceeded. Using local fallback summary.");
             }
             else if (errorResponse.Contains("invalid_api_key") || errorResponse.Contains("unauthorized"))
             {
-                _logger.LogWarning("Invalid AI API key. Using local fallback summary.");
+                _logger.LogWarning("Invalid GitHub Models API key. Using local fallback summary.");
             }
             else
             {
-                _logger.LogError("AI API call failed. Status: {StatusCode}, Response: {Response}", 
+                _logger.LogError("GitHub Models API call failed. Status: {StatusCode}, Response: {Response}", 
                     response.StatusCode, errorResponse);
             }
             
@@ -145,7 +137,7 @@ public class AiSummaryService : IAiSummaryService
         }
 
         var responseContent = await response.Content.ReadAsStringAsync();
-        _logger.LogDebug("AI API Response: {Response}", responseContent);
+        _logger.LogDebug("GitHub Models API Response: {Response}", responseContent);
         
         try 
         {
@@ -164,24 +156,24 @@ public class AiSummaryService : IAiSummaryService
                     
                     if (!string.IsNullOrEmpty(summaryContent))
                     {
-                        _logger.LogInformation("AI summary generated successfully");
+                        _logger.LogInformation("GitHub Models summary generated successfully");
                         return summaryContent;
                     }
                 }
             }
             
-            _logger.LogWarning("AI API returned empty content, using local fallback");
+            _logger.LogWarning("GitHub Models API returned empty content, using local fallback");
             return GenerateLocalSummary(tasks);
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to parse AI API response. Response: {Response}", responseContent);
+            _logger.LogError(ex, "Failed to parse GitHub Models API response. Response: {Response}", responseContent);
             return GenerateLocalSummary(tasks);
         }
     }
 }
 
-// Updated response models to handle both OpenAI and GitHub Models (Azure OpenAI) formats
+// Response models for GitHub Models API (Azure OpenAI format)
 public record AiApiResponse(AiChoice[] Choices);
 
 public record AiChoice(
