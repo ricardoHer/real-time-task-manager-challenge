@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.OpenApi.Models;
 using TaskManager.API.DTOs;
 
 namespace TaskManager.API.Services;
@@ -34,8 +35,8 @@ public class AiSummaryService : IAiSummaryService
                 return "Not found tasks to summarize";
             }
 
-            // Fallback for local summary api
-            return GenerateLocalSummary(tasksList);
+            return await GeneratingOpenAISummaryAsync(tasksList);
+
         }
         catch (Exception ex)
         {
@@ -66,5 +67,46 @@ public class AiSummaryService : IAiSummaryService
         }
 
         return summary;
-    } 
+    }
+
+    private async Task<string> GeneratingOpenAISummaryAsync(List<TaskDto> tasks)
+    {
+        var tasksText = string.Join("\n", tasks.Select(t => $"- {t.Title}: {t.Description} "));
+        // getting the api key from the configuration file
+        var openApiKey = _configuration["ChatGPTKey"];
+
+        var prompt = $"Summarize the following tasks in a concise and organized manner:\n\n{tasksText}\n\nProvide a summary in Brazilian Portuguese highlighting the main topics and activities.";
+
+        var requestBody = new
+        {
+            model = "gpt-3.5-turbo",
+            messages = new[]
+            {
+                new { role = "system", content = "You are an assistant who summarizes to-do lists in a clear and organized way." },
+                new { role = "user", content = prompt }
+            },
+            max_tokens = 200,
+            temperature = 0.7d
+        };
+
+        _httpClient.DefaultRequestHeaders.Clear();
+        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {openApiKey}");
+
+        var response = await _httpClient.PostAsJsonAsync("https://api.openai.com/v1/chat/completions", new StringContent(JsonSerializer.Serialize(requestBody), System.Text.Encoding.UTF8, "application/json"));
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Open API call failed. using local fallback.");
+            return GenerateLocalSummary(tasks);
+        }
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+        var openAiResponse = JsonSerializer.Deserialize<OpenAiResponse>(responseContent);
+
+        return openAiResponse?.Choices?.FirstOrDefault()?.Message?.Content ?? GenerateLocalSummary(tasks);
+    }
 }
+
+public record OpenAiResponse(OpenAiChoice[] Choices);
+public record OpenAiChoice(OpenAiMessage Message);
+public record OpenAiMessage(string Content);

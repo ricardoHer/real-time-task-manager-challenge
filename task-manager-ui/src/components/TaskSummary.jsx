@@ -8,7 +8,7 @@ function TaskSummary({ summary, onGenerate, loading, taskCount }) {
         disabled={loading || taskCount === 0}
         className="summary-btn"
       >
-        {loading ? "Gerando resumo..." : "Gerar Resumo com IA"}
+        {loading ? "Generating summary..." : "Generate Summary with AI"}
       </button>
 
       {taskCount === 0 && (
@@ -19,7 +19,7 @@ function TaskSummary({ summary, onGenerate, loading, taskCount }) {
 
       {summary && (
         <div className="summary-content">
-          <h3>📝 Resumo:</h3>
+          <h3>Summary:</h3>
           <div className="summary-text">
             {summary.split("\n").map((line, index) => (
               <p key={index}>{line}</p>
