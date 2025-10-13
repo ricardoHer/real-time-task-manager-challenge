@@ -22,6 +22,18 @@ builder.Services.AddDbContext<TaskDbContext>(options => options.UseInMemoryDatab
 builder.Services.AddHttpClient<IAiSummaryService, AiSummaryService>();
 builder.Services.AddScoped<IAiSummaryService, AiSummaryService>();
 
+// Configuring Cors
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5261", "https://localhost:7000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -31,23 +43,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Configuring Cors
-builder.Services.AddCors(options => 
-    options.AddPolicy("AllowReactApp", policy => {
-        policy.WithOrigins("http://localhost:5174", "http://localhost:3000")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    })
-);
-
 app.UseHttpsRedirection();
+
+// Apply CORS policy
+app.UseCors("AllowReactApp");
 
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
-
 
 // Scaffolded api action
 app.MapGet("/weatherforecast", () =>
