@@ -1,30 +1,25 @@
 function TaskSummary({ summary, onGenerate, loading, taskCount }) {
   return (
-    <div className="task-summary-container">
-      <h2>Tasks Summary</h2>
+    <div className="summary-section">
+      <h2>AI Summary</h2>
 
       <button
         onClick={onGenerate}
         disabled={loading || taskCount === 0}
-        className="summary-btn"
+        className="generate-btn"
       >
-        {loading ? "Generating summary..." : "Generate Summary with AI"}
+        {loading ? "Generating..." : "Generate Summary"}
       </button>
 
       {taskCount === 0 && (
-        <p className="summary-empty">
-          Add some tasks to generate a summary!
+        <p className="loading-text">
+          Add tasks to generate a summary
         </p>
       )}
 
       {summary && (
         <div className="summary-content">
-          <h3>Summary:</h3>
-          <div className="summary-text">
-            {summary.split("\n").map((line, index) => (
-              <p key={index}>{line}</p>
-            ))}
-          </div>
+          {summary}
         </div>
       )}
     </div>

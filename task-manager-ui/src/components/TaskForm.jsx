@@ -11,7 +11,7 @@ function TaskForm({ onSubmit }) {
         e.preventDefault();
 
         if (!title.trim() || !description.trim()) {
-            alert('Please, fill out every field')
+            alert('Please fill out all fields')
             return
         }
 
@@ -23,11 +23,11 @@ function TaskForm({ onSubmit }) {
                 description: description.trim()
             })
 
-            // Cleaning the form
+            // Clear the form
             setTitle('')
             setDescription('')
         } catch(error) {
-            console.error('error on submitting task', error)
+            console.error('Error submitting task:', error)
         } finally {
             setSubmitting(false)
         }
@@ -35,31 +35,31 @@ function TaskForm({ onSubmit }) {
 
     return (
     <div className="task-form-container">
-      <h2>➕ New Task</h2>
+      <h2>New Task</h2>
       <form onSubmit={handleSubmit} className="task-form">
         <div className="form-group">
-          <label htmlFor="title">Title:</label>
+          <label htmlFor="title">Title</label>
           <input
             id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Inform the title..."
+            placeholder="Enter task title"
             disabled={submitting}
             maxLength={200}
           />
         </div>
         
         <div className="form-group">
-          <label htmlFor="description">Description:</label>
+          <label htmlFor="description">Description</label>
           <textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe the description..."
+            placeholder="Enter task description"
             disabled={submitting}
             maxLength={1000}
-            rows={4}
+            rows={3}
           />
         </div>
         
@@ -68,7 +68,7 @@ function TaskForm({ onSubmit }) {
           disabled={submitting || !title.trim() || !description.trim()}
           className="submit-btn"
         >
-          {submitting ? 'Adding...' : 'Add new Task'}
+          {submitting ? 'Adding...' : 'Add Task'}
         </button>
       </form>
     </div>

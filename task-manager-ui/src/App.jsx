@@ -17,10 +17,10 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // fething initial tasks
+    // Fetch initial tasks
     fetchTasks();
 
-    // Setup the SignalR connectio
+    // Setup SignalR connection
     const newConnection = new HubConnectionBuilder()
       .withUrl(`${API_BASE_URL}/taskhub`)
       .withAutomaticReconnect()
@@ -36,12 +36,13 @@ function App() {
         .start()
         .then(() => {
           console.log("Connected to SignalR hub");
-          // listen for new Tasks
+          // Listen for new tasks
           connection.on("TaskAdded", (newTask) => {
+            console.log("Hell Yeahhh a new task was added: ", newTask)
             setTasks((prevTasks) => [newTask, ...prevTasks]);
           });
         })
-        .catch((err) => console.error("Connection failed: ", err));
+        .catch((err) => console.error("Connection failed:", err));
     }
 
     return () => {
@@ -56,7 +57,7 @@ function App() {
       const response = await axios.get(`${API_BASE_URL}/api/tasks`);
       setTasks(response.data);
     } catch (error) {
-      console.error("Error fetching tasks: ", error);
+      console.error("Error fetching tasks:", error);
     }
   };
 
@@ -64,7 +65,7 @@ function App() {
     try {
       await axios.post(`${API_BASE_URL}/api/tasks`, taskData);
     } catch (error) {
-      console.error("Error adding new task: ", error);
+      console.error("Error adding new task:", error);
     }
   };
 
@@ -74,8 +75,8 @@ function App() {
       const response = await axios.post(`${API_BASE_URL}/api/tasks/summary`);
       setSummary(response.data.summary);
     } catch (error) {
-      console.error("Error getting the summary", error);
-      setSummary("Error on generating the summary, try again later");
+      console.error("Error getting summary:", error);
+      setSummary("Error generating summary. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -84,26 +85,19 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Real-Time Task Manager</h1>
-        <p>Add tasks and see instant updates!</p>
+        <h1>Task Manager</h1>
+        <p>Manage your tasks efficiently</p>
       </header>
 
       <main className="app-main">
-        <div className="app-grid">
-          <div className="task-section">
-            <TaskForm onSubmit={addTask} />
-            <TaskList tasks={tasks} />
-          </div>
-
-          <div className="summary-section">
-            <TaskSummary
-              summary={summary}
-              onGenerate={generateSummary}
-              loading={loading}
-              taskCount={tasks.length}
-            />
-          </div>
-        </div>
+        <TaskForm onSubmit={addTask} />
+        <TaskList tasks={tasks} />
+        <TaskSummary
+          summary={summary}
+          onGenerate={generateSummary}
+          loading={loading}
+          taskCount={tasks.length}
+        />
       </main>
     </div>
   );
