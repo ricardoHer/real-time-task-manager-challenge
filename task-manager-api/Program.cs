@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using RealTimeTaskManager.API.Data;
+using RealTimeTaskManager.API.Data.Models;
 using TaskManager.API.DTOs;
+using TaskManager.API.Hubs;
 using TaskManager.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -71,12 +74,53 @@ app.MapGet("/weatherforecast", () =>
 
 // API Application Endpoints
 
+// Map the signalR hub
+app.MapHub<TaskHub>("/taskhub");
+
 // Simple get to return the tasks
 app.MapGet("/api/tasks", async (TaskDbContext db) =>
 {
     var tasks = await db.Tasks.OrderByDescending(x => x.CreateAt).ToListAsync();
     return tasks.Select(task => new TaskDto(task.Id, task.Title, task.TaskDescription, task.CreateAt));
 });
+
+app.MapPost("/api/tasks", async (CreateTaskDto createTaskDto, TaskDbContext db, IHubContext<TaskHub> hubContext) =>
+{
+    if (string.IsNullOrEmpty(createTaskDto.Title) || string.IsNullOrEmpty(createTaskDto.Description))
+    {
+        return Results.BadRequest("Title and description are required");
+    }
+
+    var task = new TaskItem
+    {
+        Title = createTaskDto.Title.Trim(),
+        TaskDescription = createTaskDto.Description.Trim(),
+        CreateAt = DateTime.Now
+    };
+
+    db.Tasks.Add(task);
+    await db.SaveChangesAsync();
+
+    var taskDto = new TaskDto(task.Id, task.Title, task.TaskDescription, task.CreateAt);
+
+    // Notifying all connected clients
+    await hubContext.Clients.All.SendAsync("TaskAdded", taskDto);
+
+    return Results.Created($"/api/tasks/{task.Id}", taskDto);
+});
+
+app.MapPost("/api/tasks/summary", async (TaskDbContext db, IAiSummaryService aiService) =>
+{
+    var tasks = await db.Tasks.OrderByDescending(x => x.CreateAt).ToListAsync();
+    var tasksDto = tasks.Select(x => new TaskDto(x.Id, x.Title, x.TaskDescription, x.CreateAt));
+
+    var summary = await aiService.GenerateSummaryAsync(tasksDto);
+
+    return Results.Ok(new TaskSummaryDto(summary, tasks.Count));
+});
+
+// Health check endpoint
+app.MapGet("/", () => "Task Manager API is running!");
 
 app.Run();
 

@@ -24,6 +24,21 @@ function App() {
     setCoinnection(newConnection);
   }, []);
 
+  useEffect(() => {
+    if (connection) {
+      connection
+        .start()
+        .then(() => {
+          console.log("Connected to SignalR hub");
+          // listen for new Tasks
+          connection.on("TaskAdded", (newTask) => {
+            setTasks((prevTasks) => [newTask, ...prevTasks]);
+          });
+        })
+        .catch((err) => console.error("Connection failed: ", err));
+    }
+  });
+
   const fetchTasks = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/tasks`);
