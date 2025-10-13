@@ -9,6 +9,8 @@ const API_BASE_URL = "http://localhost:5261";
 function App() {
   const [tasks, setTasks] = useState([]);
   const [connection, setCoinnection] = useState(null);
+  const [summary, setSummary] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // fething initial tasks
@@ -39,10 +41,10 @@ function App() {
     }
 
     return () => {
-      if(connection) {
-        connection.stop()
+      if (connection) {
+        connection.stop();
       }
-    }
+    };
   }, [connection]);
 
   const fetchTasks = async () => {
@@ -54,10 +56,50 @@ function App() {
     }
   };
 
+  const addTask = async (taskData) => {
+    try {
+      await axios.post(`${API_BASE_URL}/api/tasks`, taskData);
+    } catch (error) {
+      console.error("Error adding new task: ", error);
+    }
+  };
+
+  const generateSummary = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/tasks/summary`);
+      setSummary(response.data.summary);
+    } catch (error) {
+      console.error("Error getting the summary", error);
+      setSummary("Error on generating the summary, try again later");
+    }
+  };
+
   return (
-    <>
-      <div></div>
-    </>
+    <div className="app">
+      <header className="app-header">
+        <h1>🚀 Gerenciador de Tarefas em Tempo Real</h1>
+        <p>Adicione tarefas e veja as atualizações instantâneas!</p>
+      </header>
+
+      <main className="app-main">
+        <div className="app-grid">
+          <div className="task-section">
+            <TaskForm onSubmit={addTask} />
+            <TaskList tasks={tasks} />
+          </div>
+
+          <div className="summary-section">
+            <TaskSummary
+              summary={summary}
+              onGenerate={generateSummary}
+              loading={loading}
+              taskCount={tasks.length}
+            />
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
 
