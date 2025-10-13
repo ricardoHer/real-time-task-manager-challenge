@@ -4,11 +4,15 @@ import "./App.css";
 import axios from "axios";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 
+import TaskList from './components/TaskList'
+import TaskForm from "./components/TaskForm";
+import TaskSummary from "./components/TaskSummary";
+
 const API_BASE_URL = "http://localhost:5261";
 
 function App() {
   const [tasks, setTasks] = useState([]);
-  const [connection, setCoinnection] = useState(null);
+  const [connection, setConnection] = useState(null);
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +27,7 @@ function App() {
       .configureLogging(LogLevel.Information)
       .build();
 
-    setCoinnection(newConnection);
+    setConnection(newConnection);
   }, []);
 
   useEffect(() => {
@@ -78,8 +82,8 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🚀 Gerenciador de Tarefas em Tempo Real</h1>
-        <p>Adicione tarefas e veja as atualizações instantâneas!</p>
+        <h1>Real-Time Task Manager</h1>
+        <p>Add tasks and see instant updates!</p>
       </header>
 
       <main className="app-main">

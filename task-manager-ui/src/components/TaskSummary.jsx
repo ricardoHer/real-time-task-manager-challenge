@@ -1,7 +1,7 @@
 function TaskSummary({ summary, onGenerate, loading, taskCount }) {
   return (
     <div className="task-summary-container">
-      <h2>🤖 Resumo das Tarefas</h2>
+      <h2>Tasks Summary</h2>
 
       <button
         onClick={onGenerate}
@@ -13,7 +13,7 @@ function TaskSummary({ summary, onGenerate, loading, taskCount }) {
 
       {taskCount === 0 && (
         <p className="summary-empty">
-          Adicione algumas tarefas para gerar um resumo!
+          Add some tasks to generate a summary!
         </p>
       )}
 

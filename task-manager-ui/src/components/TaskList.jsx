@@ -1,7 +1,7 @@
 import TaskItem from "./TaskItem";
 
 function TaskList({ tasks }) {
-  if (tasks.lenth == 0) {
+  if (tasks.length == 0) {
     return (
       <div className="task-list-container">
         <h2> Task list</h2>
@@ -27,4 +27,4 @@ function TaskList({ tasks }) {
 }
 
 
-export default TaskItem
+export default TaskList

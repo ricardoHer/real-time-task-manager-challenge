@@ -8,7 +8,7 @@ function TaskForm({ onSubmit }) {
     const [submitting, setSubmitting] = useState(false)
 
     const handleSubmit = async (e) => {
-        e.prevendDefault();
+        e.preventDefault();
 
         if (!title.trim() || !description.trim()) {
             alert('Please, fill out every field')
@@ -35,28 +35,28 @@ function TaskForm({ onSubmit }) {
 
     return (
     <div className="task-form-container">
-      <h2>➕ Nova Tarefa</h2>
+      <h2>➕ New Task</h2>
       <form onSubmit={handleSubmit} className="task-form">
         <div className="form-group">
-          <label htmlFor="title">Título:</label>
+          <label htmlFor="title">Title:</label>
           <input
             id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Digite o título da tarefa..."
+            placeholder="Inform the title..."
             disabled={submitting}
             maxLength={200}
           />
         </div>
         
         <div className="form-group">
-          <label htmlFor="description">Descrição:</label>
+          <label htmlFor="description">Description:</label>
           <textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Descreva os detalhes da tarefa..."
+            placeholder="Describe the description..."
             disabled={submitting}
             maxLength={1000}
             rows={4}
@@ -68,7 +68,7 @@ function TaskForm({ onSubmit }) {
           disabled={submitting || !title.trim() || !description.trim()}
           className="submit-btn"
         >
-          {submitting ? 'Adicionando...' : 'Adicionar Tarefa'}
+          {submitting ? 'Adding...' : 'Add new Task'}
         </button>
       </form>
     </div>
