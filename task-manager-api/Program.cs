@@ -1,3 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using RealTimeTaskManager.API.Data;
+using TaskManager.API.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add local settings configuration (if file exists)
@@ -10,6 +14,12 @@ if (File.Exists("localsettings.json"))
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
+builder.Services.AddDbContext<TaskDbContext>(options => options.UseInMemoryDatabase("SqliteConnection"));
+
+// Adding the services, for HTTPClient consumption and for Service
+builder.Services.AddHttpClient<IAiSummaryService, AiSummaryService>();
+builder.Services.AddScoped<IAiSummaryService, AiSummaryService>();
 
 var app = builder.Build();
 

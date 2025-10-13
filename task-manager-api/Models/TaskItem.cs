@@ -1,4 +1,4 @@
-namespace RealTimeTaskManager.API.Data;
+namespace RealTimeTaskManager.API.Data.Models;
 
 public class TaskItem
 {

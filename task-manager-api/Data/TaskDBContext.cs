@@ -1,6 +1,5 @@
-
-
 using Microsoft.EntityFrameworkCore;
+using RealTimeTaskManager.API.Data.Models;
 
 namespace RealTimeTaskManager.API.Data;
 
