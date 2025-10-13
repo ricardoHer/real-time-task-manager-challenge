@@ -98,11 +98,11 @@ public class AiSummaryService : IAiSummaryService
     {
         var tasksText = string.Join("\n", tasks.Select(t => $"- {t.Title}: {t.Description} "));
 
-        var prompt = $"Summarize the following tasks in a concise and organized manner:\n\n{tasksText}\n\nProvide a summary in Brazilian Portuguese highlighting the main topics and activities.";
+        var prompt = $"Summarize the following tasks in a concise and organized manner:\n\n{tasksText}\n\nProvide a summary in English highlighting the main topics and activities.";
 
         var requestBody = new
         {
-            model = "gpt-3.5-turbo",
+            model = model,
             messages = new[]
             {
                 new { role = "system", content = "You are an assistant who summarizes to-do lists in a clear and organized way." },
@@ -113,30 +113,88 @@ public class AiSummaryService : IAiSummaryService
         };
 
         _httpClient.DefaultRequestHeaders.Clear();
-        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {openApiKey}");
+        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
 
         var jsonContent = JsonSerializer.Serialize(requestBody);
-        _logger.LogInformation("Sending request to OpenAI: {JsonContent}", jsonContent);
+        _logger.LogInformation("Sending request to {Endpoint} with model {Model}", endpoint, model);
         
         var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
 
-        var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
+        var response = await _httpClient.PostAsync(endpoint, content);
 
         if (!response.IsSuccessStatusCode)
         {
             var errorResponse = await response.Content.ReadAsStringAsync();
-            _logger.LogError("OpenAI API call failed. Status: {StatusCode}, Response: {Response}", 
-                response.StatusCode, errorResponse);
+            
+            // Check for specific error types
+            if (errorResponse.Contains("insufficient_quota"))
+            {
+                _logger.LogWarning("AI API quota exceeded. Using local fallback summary.");
+            }
+            else if (errorResponse.Contains("invalid_api_key") || errorResponse.Contains("unauthorized"))
+            {
+                _logger.LogWarning("Invalid AI API key. Using local fallback summary.");
+            }
+            else
+            {
+                _logger.LogError("AI API call failed. Status: {StatusCode}, Response: {Response}", 
+                    response.StatusCode, errorResponse);
+            }
+            
             return GenerateLocalSummary(tasks);
         }
 
         var responseContent = await response.Content.ReadAsStringAsync();
-        var openAiResponse = JsonSerializer.Deserialize<OpenAiResponse>(responseContent);
-
-        return openAiResponse?.Choices?.FirstOrDefault()?.Message?.Content ?? GenerateLocalSummary(tasks);
+        _logger.LogDebug("AI API Response: {Response}", responseContent);
+        
+        try 
+        {
+            using var document = JsonDocument.Parse(responseContent);
+            var root = document.RootElement;
+            
+            // Try to get the content from choices[0].message.content
+            if (root.TryGetProperty("choices", out var choices) && 
+                choices.GetArrayLength() > 0)
+            {
+                var firstChoice = choices[0];
+                if (firstChoice.TryGetProperty("message", out var message) &&
+                    message.TryGetProperty("content", out var contentProperty))
+                {
+                    var summaryContent = contentProperty.GetString();
+                    
+                    if (!string.IsNullOrEmpty(summaryContent))
+                    {
+                        _logger.LogInformation("AI summary generated successfully");
+                        return summaryContent;
+                    }
+                }
+            }
+            
+            _logger.LogWarning("AI API returned empty content, using local fallback");
+            return GenerateLocalSummary(tasks);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to parse AI API response. Response: {Response}", responseContent);
+            return GenerateLocalSummary(tasks);
+        }
     }
 }
 
-public record OpenAiResponse(OpenAiChoice[] Choices);
-public record OpenAiChoice(OpenAiMessage Message);
-public record OpenAiMessage(string Content);
+// Updated response models to handle both OpenAI and GitHub Models (Azure OpenAI) formats
+public record AiApiResponse(AiChoice[] Choices);
+
+public record AiChoice(
+    AiMessage Message, 
+    string? Finish_Reason, 
+    int Index,
+    object? Logprobs = null,
+    object? Content_Filter_Results = null
+);
+
+public record AiMessage(
+    string Content, 
+    string? Role = null, 
+    string? Refusal = null,
+    object[]? Annotations = null
+);
