@@ -37,7 +37,13 @@ function App() {
         })
         .catch((err) => console.error("Connection failed: ", err));
     }
-  });
+
+    return () => {
+      if(connection) {
+        connection.stop()
+      }
+    }
+  }, [connection]);
 
   const fetchTasks = async () => {
     try {
