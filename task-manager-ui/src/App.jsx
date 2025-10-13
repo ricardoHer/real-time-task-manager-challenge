@@ -4,7 +4,7 @@ import "./App.css";
 import axios from "axios";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 
-import TaskList from './components/TaskList'
+import TaskList from "./components/TaskList";
 import TaskForm from "./components/TaskForm";
 import TaskSummary from "./components/TaskSummary";
 
@@ -76,6 +76,8 @@ function App() {
     } catch (error) {
       console.error("Error getting the summary", error);
       setSummary("Error on generating the summary, try again later");
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -72,8 +72,31 @@ public class AiSummaryService : IAiSummaryService
     private async Task<string> GeneratingOpenAISummaryAsync(List<TaskDto> tasks)
     {
         var tasksText = string.Join("\n", tasks.Select(t => $"- {t.Title}: {t.Description} "));
-        // getting the api key from the configuration file
+        
+        // Try GitHub Models first, then OpenAI as fallback
+        var githubKey = _configuration["GitHubModelsKey"];
         var openApiKey = _configuration["ChatGPTKey"];
+        
+        if (!string.IsNullOrEmpty(githubKey))
+        {
+            _logger.LogInformation("Using GitHub Models for AI summary");
+            return await CallAiApiAsync(tasks, githubKey, "https://models.inference.ai.azure.com/chat/completions", "gpt-4o-mini");
+        }
+        else if (!string.IsNullOrEmpty(openApiKey))
+        {
+            _logger.LogInformation("Using OpenAI for AI summary");
+            return await CallAiApiAsync(tasks, openApiKey, "https://api.openai.com/v1/chat/completions", "gpt-3.5-turbo");
+        }
+        else
+        {
+            _logger.LogWarning("No AI API keys found in configuration. Using local fallback.");
+            return GenerateLocalSummary(tasks);
+        }
+    }
+
+    private async Task<string> CallAiApiAsync(List<TaskDto> tasks, string apiKey, string endpoint, string model)
+    {
+        var tasksText = string.Join("\n", tasks.Select(t => $"- {t.Title}: {t.Description} "));
 
         var prompt = $"Summarize the following tasks in a concise and organized manner:\n\n{tasksText}\n\nProvide a summary in Brazilian Portuguese highlighting the main topics and activities.";
 
@@ -92,11 +115,18 @@ public class AiSummaryService : IAiSummaryService
         _httpClient.DefaultRequestHeaders.Clear();
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {openApiKey}");
 
-        var response = await _httpClient.PostAsJsonAsync("https://api.openai.com/v1/chat/completions", new StringContent(JsonSerializer.Serialize(requestBody), System.Text.Encoding.UTF8, "application/json"));
+        var jsonContent = JsonSerializer.Serialize(requestBody);
+        _logger.LogInformation("Sending request to OpenAI: {JsonContent}", jsonContent);
+        
+        var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Open API call failed. using local fallback.");
+            var errorResponse = await response.Content.ReadAsStringAsync();
+            _logger.LogError("OpenAI API call failed. Status: {StatusCode}, Response: {Response}", 
+                response.StatusCode, errorResponse);
             return GenerateLocalSummary(tasks);
         }
 
