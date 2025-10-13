@@ -5,7 +5,7 @@ namespace RealTimeTaskManager.API.Data;
 
 public class TaskDbContext(DbContextOptions<TaskDbContext> options) : DbContext(options)
 {
-    DbSet<TaskItem> Tasks { get; set; }
+    public DbSet<TaskItem> Tasks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

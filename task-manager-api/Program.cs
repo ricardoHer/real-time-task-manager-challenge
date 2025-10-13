@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RealTimeTaskManager.API.Data;
+using TaskManager.API.DTOs;
 using TaskManager.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +31,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Configuring Cors
+builder.Services.AddCors(options => 
+    options.AddPolicy("AllowReactApp", policy => {
+        policy.WithOrigins("http://localhost:5174", "http://localhost:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    })
+);
+
 app.UseHttpsRedirection();
 
 var summaries = new[]
@@ -37,9 +48,11 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
+
+// Scaffolded api action
 app.MapGet("/weatherforecast", () =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
+    var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
         (
             DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
@@ -51,6 +64,15 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast")
 .WithOpenApi();
+
+// API Application Endpoints
+
+// Simple get to return the tasks
+app.MapGet("/api/tasks", async (TaskDbContext db) =>
+{
+    var tasks = await db.Tasks.OrderByDescending(x => x.CreateAt).ToListAsync();
+    return tasks.Select(task => new TaskDto(task.Id, task.Title, task.TaskDescription, task.CreateAt));
+});
 
 app.Run();
 
