@@ -49,7 +49,7 @@ cd task-manager-api
 
 #### Configure AI Integration (Optional)
 
-Create a `localsettings.json` file in the API directory:
+Create a `localsettings.json` file in the **root of the API directory** (`task-manager-api/localsettings.json`):
 
 ```json
 {
@@ -59,9 +59,16 @@ Create a `localsettings.json` file in the API directory:
 
 **To get a GitHub Personal Access Token:**
 1. Go to [GitHub Settings > Personal Access Tokens](https://github.com/settings/tokens)
-2. Generate new token (classic)
-3. Select `public_repo` scope
-4. Copy the token to `localsettings.json`
+2. Click "Generate new token" → "Generate new token (classic)"
+3. **Configure:**
+   - **Note**: "Task Manager GitHub Models"
+   - **Expiration**: 90 days (or your preference)
+   - **Scopes**: Leave only "public_repo" checked (sufficient for GitHub Models)
+4. Click "Generate token"
+5. **Copy the token** - you'll only see it once!
+6. Add the token to `localsettings.json`
+
+> **Important:** The `localsettings.json` file must be placed in the same directory as `Program.cs` (the API root directory).
 
 > **Note:** AI summaries will fall back to local summaries if no API keys are provided.
 
